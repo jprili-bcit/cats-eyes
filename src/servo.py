@@ -7,21 +7,23 @@ GPIO.setwarnings(False)
 
 # Pin configuration
 BUTTON_PIN = 12            # Joystick button pin
-VRX_PIN = 17               # Analog X-axis (must be a digital pin capable of input)
-VRY_PIN = 27               # Analog Y-axis (must be a digital pin capable of input)
-SERVO_HORIZONTAL_PIN = 23  # GPIO for horizontal (azimuth) servo
-SERVO_VERTICAL_PIN = 24    # GPIO for vertical (elevation) servo
+VRX_PIN = 17               # Analog X-axis
+VRY_PIN = 27               # Analog Y-axis
+SERVO_HORIZONTAL_PIN = 23  # Horizontal servo
+SERVO_VERTICAL_PIN = 24    # Vertical servo
 
 # Servo configuration
-SERVO_MIN_PULSE = 500      # Minimum pulse width (μs)
-SERVO_MAX_PULSE = 2500     # Maximum pulse width (μs)
-SERVO_MIN_ANGLE = 0        # Minimum angle (degrees)
-SERVO_MAX_ANGLE = 180      # Maximum angle (degrees)
-SERVO_REFRESH_RATE = 50    # Hz (standard for servos)
+SERVO_MIN_PULSE = 500      # μs
+SERVO_MAX_PULSE = 2500     # μs
+SERVO_MIN_ANGLE = 0        # degrees
+SERVO_MAX_ANGLE = 180      # degrees
+SERVO_REFRESH_RATE = 50    # Hz
 
 # Joystick configuration
-SAMPLE_INTERVAL = 0.1      # Time between joystick reads (seconds)
-MOVE_THRESHOLD = 0.2       # Minimum joystick movement to respond
+SAMPLE_INTERVAL = 0.1      # seconds
+MOVE_THRESHOLD = 0.2       # 20% of movement range
+CALIBRATION_SAMPLES = 10    # Number of samples for calibration
+MIN_READING = 1            # Minimum allowed reading to prevent divide-by-zero
 
 # Set up GPIO
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -35,20 +37,39 @@ horizontal_angle = 90
 vertical_angle = 90
 
 def read_rc_time(pin):
-    """Measure RC charging time for analog value approximation"""
+    """Measure RC charging time with safeguards"""
     count = 0
-    GPIO.setup(pin, GPIO.OUT)
-    GPIO.output(pin, GPIO.LOW)
-    time.sleep(0.1)  # Discharge capacitor
+    try:
+        # Discharge capacitor
+        GPIO.setup(pin, GPIO.OUT)
+        GPIO.output(pin, GPIO.LOW)
+        time.sleep(0.1)
 
-    GPIO.setup(pin, GPIO.IN)
-    while GPIO.input(pin) == GPIO.LOW:
-        count += 1
-    return count
+        # Time charging
+        GPIO.setup(pin, GPIO.IN)
+        start_time = time.time()
+        while GPIO.input(pin) == GPIO.LOW:
+            count += 1
+            # Timeout after 0.1s to prevent hanging
+            if time.time() - start_time > 0.1:
+                break
+    except:
+        pass
+
+    return max(count, MIN_READING)  # Ensure we never return 0
+
+def calibrate_joystick(pin, samples=5):
+    """Get stable center position with multiple samples"""
+    readings = []
+    for _ in range(samples):
+        readings.append(read_rc_time(pin))
+        time.sleep(0.05)
+    return sum(readings) / len(readings)  # Return average
 
 def set_servo_angle(pin, angle):
-    """Set servo angle without hardware PWM"""
-    pulse_width = SERVO_MIN_PULSE + (angle / SERVO_MAX_ANGLE) * (SERVO_MAX_PULSE - SERVO_MIN_PULSE)
+    """Set servo angle with pulse width modulation"""
+    angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))  # Constrain angle
+    pulse_width = SERVO_MIN_PULSE + (angle / 180) * (SERVO_MAX_PULSE - SERVO_MIN_PULSE)
     pulse_width = pulse_width / 1000000.0  # Convert to seconds
 
     GPIO.output(pin, GPIO.HIGH)
@@ -56,67 +77,57 @@ def set_servo_angle(pin, angle):
     GPIO.output(pin, GPIO.LOW)
     time.sleep((1.0/SERVO_REFRESH_RATE) - pulse_width)
 
-def map_value(value, in_min, in_max, out_min, out_max):
-    """Map value from one range to another"""
-    return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
-
 try:
     print("Analog Joystick Camera Control System")
-    print("Move joystick to aim, press button to center")
-    print("Press Ctrl+C to exit")
+    print("Calibrating - Please center the joystick...")
 
-    # Calibration - find center values
-    print("Calibrating joystick center...")
-    x_center = read_rc_time(VRX_PIN)
-    y_center = read_rc_time(VRY_PIN)
-    print(f"Calibration complete - Center X: {x_center}, Y: {y_center}")
+    # Robust calibration with multiple samples
+    x_center = calibrate_joystick(VRX_PIN, CALIBRATION_SAMPLES)
+    y_center = calibrate_joystick(VRY_PIN, CALIBRATION_SAMPLES)
+
+    # Validate calibration
+    if x_center <= MIN_READING or y_center <= MIN_READING:
+        raise ValueError("Calibration failed - check joystick connections")
+
+    print(f"Calibration complete - Center X: {x_center:.1f}, Y: {y_center:.1f}")
 
     # Initial position
     set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
     set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
 
     while True:
-        # Read button state (0 when pressed)
-        button_pressed = not GPIO.input(BUTTON_PIN)
-
-        # Center servos if button pressed
-        if button_pressed:
-            horizontal_angle = 90
-            vertical_angle = 90
+        # Read button
+        if not GPIO.input(BUTTON_PIN):
+            horizontal_angle = vertical_angle = 90
             set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
             set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
-            print("Centering servos...")
-            time.sleep(0.5)  # Debounce delay
+            print("\nCentered servos!")
+            time.sleep(0.5)
 
-        # Read joystick position
-        x_value = read_rc_time(VRX_PIN)
-        y_value = read_rc_time(VRY_PIN)
+        # Read joystick
+        x_val = read_rc_time(VRX_PIN)
+        y_val = read_rc_time(VRY_PIN)
 
-        # Calculate relative position (-1.0 to 1.0 range)
-        try:
-            x_rel = (x_value - x_center) / x_center
-            y_rel = (y_value - y_center) / y_center
-        except ZeroDivisionError:
-            x_rel = 0
-            y_rel = 0
+        # Calculate relative position (-1.0 to 1.0)
+        x_rel = (x_center - x_val) / x_center  # Invert so right=positive
+        y_rel = (y_center - y_val) / y_center  # Invert so up=positive
 
-        # Only move if joystick is pushed beyond threshold
+        # Update servos if movement exceeds threshold
         if abs(x_rel) > MOVE_THRESHOLD:
-            horizontal_angle = map_value(x_rel, -1, 1, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE)
+            horizontal_angle = 90 + (x_rel * 90)  # Scale to ±90° from center
             set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
 
         if abs(y_rel) > MOVE_THRESHOLD:
-            vertical_angle = map_value(y_rel, -1, 1, SERVO_MIN_ANGLE, SERVO_MAX_ANGLE)
+            vertical_angle = 90 + (y_rel * 90)
             set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
 
-        # Print debug info
-        print(f"X: {x_value:4d} ({x_rel:+.2f}), Y: {y_value:4d} ({y_rel:+.2f}) | Servos: H{horizontal_angle:3.0f}° V{vertical_angle:3.0f}°", end='\r')
-
+        # Display status
+        print(f"X: {x_val:4d} ({x_rel:+.2f}) | Y: {y_val:4d} ({y_rel:+.2f}) | Servos: H{horizontal_angle:3.0f}° V{vertical_angle:3.0f}°", end='\r')
         time.sleep(SAMPLE_INTERVAL)
 
-except KeyboardInterrupt:
-    print("\nShutting down...")
+except Exception as e:
+    print(f"\nError: {str(e)}")
 
 finally:
-    # Clean up
     GPIO.cleanup()
+    print("\nGPIO cleaned up")
