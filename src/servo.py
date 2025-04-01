@@ -17,7 +17,7 @@ SERVO_MIN_PULSE = 500      # μs
 SERVO_MAX_PULSE = 2500     # μs
 SERVO_MIN_ANGLE = 0        # degrees
 SERVO_MAX_ANGLE = 180      # degrees
-SERVO_REFRESH_RATE = 50    # Hz
+SERVO_REFRESH_RATE = 120    # Hz
 
 # Joystick configuration
 SAMPLE_INTERVAL = 0.1      # seconds
