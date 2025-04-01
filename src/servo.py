@@ -6,11 +6,11 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 # Pin configuration
-BUTTON_PIN = 17            # Joystick button pin
-VRX_PIN = 23               # Analog X-axis (must be a digital pin capable of input)
-VRY_PIN = 24               # Analog Y-axis (must be a digital pin capable of input)
-SERVO_HORIZONTAL_PIN = 18  # GPIO for horizontal (azimuth) servo
-SERVO_VERTICAL_PIN = 19    # GPIO for vertical (elevation) servo
+BUTTON_PIN = 12            # Joystick button pin
+VRX_PIN = 17               # Analog X-axis (must be a digital pin capable of input)
+VRY_PIN = 27               # Analog Y-axis (must be a digital pin capable of input)
+SERVO_HORIZONTAL_PIN = 23  # GPIO for horizontal (azimuth) servo
+SERVO_VERTICAL_PIN = 24    # GPIO for vertical (elevation) servo
 
 # Servo configuration
 SERVO_MIN_PULSE = 500      # Minimum pulse width (μs)
