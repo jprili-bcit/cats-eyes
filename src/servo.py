@@ -7,9 +7,9 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 # Pin configuration
-BUTTON_PIN = 17            # Joystick button pin
-SERVO_HORIZONTAL_PIN = 18  # GPIO for horizontal (azimuth) servo
-SERVO_VERTICAL_PIN = 19    # GPIO for vertical (elevation) servo
+BUTTON_PIN = 13            # Joystick button pin
+SERVO_HORIZONTAL_PIN = 17  # GPIO for horizontal (azimuth) servo
+SERVO_VERTICAL_PIN = 27    # GPIO for vertical (elevation) servo
 
 # Servo configuration
 SERVO_MIN_PULSE = 500      # Minimum pulse width (μs)
