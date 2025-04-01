@@ -93,8 +93,12 @@ try:
         y_value = read_rc_time(VRY_PIN)
 
         # Calculate relative position (-1.0 to 1.0 range)
-        x_rel = (x_value - x_center) / x_center
-        y_rel = (y_value - y_center) / y_center
+        try:
+            x_rel = (x_value - x_center) / x_center
+            y_rel = (y_value - y_center) / y_center
+        except ZeroDivisionError:
+            x_rel = 0
+            y_rel = 0
 
         # Only move if joystick is pushed beyond threshold
         if abs(x_rel) > MOVE_THRESHOLD:
