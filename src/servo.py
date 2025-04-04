@@ -122,8 +122,8 @@ try:
         smooth_y = sum(y_buffer) / len(y_buffer)
 
         # Calculate relative position (-1.0 to 1.0)
-        x_rel = (x_center - smooth_x) / x_center
-        y_rel = (y_center - smooth_y) / y_center
+        x_rel = (x_center - smooth_x)
+        y_rel = (y_center - smooth_y)
 
         # Update target angles if movement exceeds threshold
         if abs(x_rel) > MOVE_THRESHOLD:
