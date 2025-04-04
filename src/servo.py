@@ -1,6 +1,5 @@
 import time
 import RPi.GPIO as GPIO
-from collections import deque
 
 # Set up GPIO
 GPIO.setmode(GPIO.BCM)
@@ -8,118 +7,92 @@ GPIO.setwarnings(False)
 
 # Pin configuration
 BUTTON_PIN = 12            # Joystick button pin
-VRX_PIN = 17               # Analog X-axis
-VRY_PIN = 27               # Analog Y-axis
-SERVO_HORIZONTAL_PIN = 23  # Horizontal servo
-SERVO_VERTICAL_PIN = 24    # Vertical servo
+UP_PIN = 17                # Up direction
+DOWN_PIN = 27              # Down direction
+LEFT_PIN = 22              # Left direction
+RIGHT_PIN = 23             # Right direction
+SERVO_HORIZONTAL_PIN = 24  # Horizontal servo
+SERVO_VERTICAL_PIN = 25    # Vertical servo
 
 # Servo configuration
-SERVO_MIN_PULSE = 500      # μs
-SERVO_MAX_PULSE = 2500     # μs
 SERVO_MIN_ANGLE = 0        # degrees
 SERVO_MAX_ANGLE = 180      # degrees
-SERVO_REFRESH_RATE = 120   # Hz
-SERVO_SENSITIVITY = 0.8    # Movement speed multiplier (0.1-2.0)
-DEADZONE = 0.15            # Joystick deadzone (15% of total range)
-
-# Joystick configuration
-SAMPLE_INTERVAL = 0.02     # Update interval (seconds)
-SMOOTHING_SAMPLES = 5      # Moving average samples
+SERVO_REFRESH_RATE = 50    # Hz
+STEP_SIZE = 2               # Degrees per movement step
+MOVE_DELAY = 0.1           # Time between steps (seconds)
 
 # Initialize GPIO
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(VRX_PIN, GPIO.IN)
-GPIO.setup(VRY_PIN, GPIO.IN)
+GPIO.setup(UP_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(DOWN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(LEFT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(RIGHT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SERVO_HORIZONTAL_PIN, GPIO.OUT)
 GPIO.setup(SERVO_VERTICAL_PIN, GPIO.OUT)
 
+# Initialize PWM for servos
+horizontal_pwm = GPIO.PWM(SERVO_HORIZONTAL_PIN, SERVO_REFRESH_RATE)
+vertical_pwm = GPIO.PWM(SERVO_VERTICAL_PIN, SERVO_REFRESH_RATE)
+horizontal_pwm.start(0)
+vertical_pwm.start(0)
+
 # Servo control variables
-horizontal_angle = 90  # Start at center position
+horizontal_angle = 90
 vertical_angle = 90
-x_buffer = deque(maxlen=SMOOTHING_SAMPLES)
-y_buffer = deque(maxlen=SMOOTHING_SAMPLES)
 
-def read_rc_time(pin):
-    """Measure capacitor charge time for analog approximation"""
-    count = 0
-    try:
-        GPIO.setup(pin, GPIO.OUT)
-        GPIO.output(pin, GPIO.LOW)
-        time.sleep(0.1)
-
-        GPIO.setup(pin, GPIO.IN)
-        start = time.time()
-        while GPIO.input(pin) == GPIO.LOW and (time.time() - start) < 0.1:
-            count += 1
-    except:
-        pass
-    return max(count, 1)
-
-def set_servo_angle(pin, angle):
-    """Update servo position using software PWM"""
-    angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
-    pulse = SERVO_MIN_PULSE + (angle/180)*(SERVO_MAX_PULSE - SERVO_MIN_PULSE)
-    pulse_us = pulse / 1e6
-
-    GPIO.output(pin, GPIO.HIGH)
-    time.sleep(pulse_us)
-    GPIO.output(pin, GPIO.LOW)
-    time.sleep((1/SERVO_REFRESH_RATE) - pulse_us)
+def set_angle(pwm, angle):
+    duty = angle / 18 + 2
+    pwm.ChangeDutyCycle(duty)
 
 try:
-    # Automatic center reference
-    print("Initializing...")
-    x_center = sum(read_rc_time(VRX_PIN) for _ in range(5)) / 5
-    y_center = sum(read_rc_time(VRY_PIN) for _ in range(5)) / 5
-    print(f"Reference center - X: {x_center:.1f}, Y: {y_center:.1f}")
+    print("Digital Joystick Camera Control")
+    print("Use directions to move, press to center")
 
-    # Initial servo position
-    set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
-    set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
+    # Initial position
+    set_angle(horizontal_pwm, horizontal_angle)
+    set_angle(vertical_pwm, vertical_angle)
+    time.sleep(0.5)  # Allow servos to settle
 
     while True:
-        # Read and smooth joystick inputs
-        x_val = read_rc_time(VRX_PIN)
-        y_val = read_rc_time(VRY_PIN)
-        x_buffer.append(x_val)
-        y_buffer.append(y_val)
+        # Read joystick directions (active low)
+        up = not GPIO.input(UP_PIN)
+        down = not GPIO.input(DOWN_PIN)
+        left = not GPIO.input(LEFT_PIN)
+        right = not GPIO.input(RIGHT_PIN)
+        center_btn = not GPIO.input(BUTTON_PIN)
 
-        # Calculate relative offsets
-        smooth_x = sum(x_buffer)/len(x_buffer)
-        smooth_y = sum(y_buffer)/len(y_buffer)
-        x_offset = (x_center - smooth_x) / x_center
-        y_offset = (y_center - smooth_y) / y_center
+        # Handle vertical movement
+        if up and vertical_angle < SERVO_MAX_ANGLE:
+            vertical_angle += STEP_SIZE
+        if down and vertical_angle > SERVO_MIN_ANGLE:
+            vertical_angle -= STEP_SIZE
 
-        # Apply deadzone
-        if abs(x_offset) < DEADZONE: x_offset = 0
-        if abs(y_offset) < DEADZONE: y_offset = 0
+        # Handle horizontal movement
+        if right and horizontal_angle < SERVO_MAX_ANGLE:
+            horizontal_angle += STEP_SIZE
+        if left and horizontal_angle > SERVO_MIN_ANGLE:
+            horizontal_angle -= STEP_SIZE
 
-        # Update angles based on relative movement
-        horizontal_angle += x_offset * SERVO_SENSITIVITY
-        vertical_angle += y_offset * SERVO_SENSITIVITY
-
-        # Constrain angles to valid range
-        horizontal_angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, horizontal_angle))
-        vertical_angle = max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, vertical_angle))
-
-        # Update servos
-        set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
-        set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
+        # Update servo positions
+        set_angle(horizontal_pwm, horizontal_angle)
+        set_angle(vertical_pwm, vertical_angle)
 
         # Center button handling
-        if not GPIO.input(BUTTON_PIN):
+        if center_btn:
             horizontal_angle = vertical_angle = 90
+            set_angle(horizontal_pwm, 90)
+            set_angle(vertical_pwm, 90)
             print("\nCentered servos!")
             time.sleep(0.5)  # Debounce delay
-            x_buffer.clear()
-            y_buffer.clear()
 
         # Display status
-        print(f"H: {horizontal_angle:05.1f}° | V: {vertical_angle:05.1f}° | X: {x_offset:+.2f} | Y: {y_offset:+.2f}", end='\r')
-        time.sleep(SAMPLE_INTERVAL)
+        print(f"H: {horizontal_angle:03}° V: {vertical_angle:03}°", end='\r')
+        time.sleep(MOVE_DELAY)
 
 except KeyboardInterrupt:
     print("\nExiting...")
 
 finally:
+    horizontal_pwm.stop()
+    vertical_pwm.stop()
     GPIO.cleanup()
