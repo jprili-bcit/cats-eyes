@@ -91,6 +91,9 @@ def smooth_servo_movement(current, target, factor):
     return current + (target - current) * factor
 
 try:
+    x_center = 0
+    y_center = 0
+
     # Initial position
     set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
     set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
