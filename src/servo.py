@@ -98,15 +98,14 @@ try:
 
     while True:
         # Read button
-        if not GPIO.input(BUTTON_PIN):
-            target_h_angle = target_v_angle = 90
-            horizontal_angle = vertical_angle = 90
-            set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
-            set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
-            print("\nCentered servos!")
-            time.sleep(0.5)
-            x_buffer.clear()
-            y_buffer.clear()
+        target_h_angle = target_v_angle = 90
+        horizontal_angle = vertical_angle = 90
+        set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
+        set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
+        print("\nCentered servos!")
+        time.sleep(0.5)
+        x_buffer.clear()
+        y_buffer.clear()
 
         # Read joystick and apply smoothing
         x_val = read_rc_time(VRX_PIN)
