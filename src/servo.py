@@ -69,6 +69,7 @@ def map_pulse_to_angle(pulse_width, max_width=0.01):
 def set_angle(pwm, angle):
     duty = angle / 18 + 2
     pwm.ChangeDutyCycle(duty)
+    time.sleep(0.1)  # Allow servo to move
     pwm.ChangeDutyCycle(0)  # Stop sending signal
 
 def map_pulse_to_angle(current_angle, pulse_width, max_width=0.01):
@@ -93,14 +94,8 @@ try:
         pulse_y = measure_pulse(VRY_PIN)
         print(f"{pulse_x}, {pulse_y}")
 
-        x_buffer.append(pulse_x)
-        y_buffer.append(pulse_y)
-
-        smoothed_x = sum(x_buffer) / len(x_buffer)
-        smoothed_y = sum(y_buffer) / len(y_buffer)
-
-        horizontal_angle = map_pulse_to_angle(horizontal_angle, smoothed_x)
-        vertical_angle = map_pulse_to_angle(vertical_angle, smoothed_y)
+        horizontal_angle = map_pulse_to_angle(horizontal_angle)
+        vertical_angle = map_pulse_to_angle(vertical_angle)
 
         # Apply new servo positions
         set_angle(horizontal_pwm, horizontal_angle)
