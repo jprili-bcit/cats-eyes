@@ -76,12 +76,10 @@ def map_pulse_to_angle(current_angle, pulse_width, max_width=0.01):
     # Normalize to -1 to 1 range with deadzone
     normalized = (pulse_width / max_width) * 2 - 1
     if abs(normalized) < NEUTRAL_DEADZONE:
-        return SERVO_CENTER
-    else:
-        return current_angle + normalized
+        return current_angle
 
     # Map to servo range
-    angle = SERVO_CENTER + normalized * (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)/2
+    angle = current_angle + normalized * (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)/2
     return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
 
 try:
