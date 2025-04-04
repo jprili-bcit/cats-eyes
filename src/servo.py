@@ -19,6 +19,9 @@ SERVO_CENTER = 90
 STEP_SIZE = 2              # Degrees per movement step
 MOVE_DELAY = 0.1           # Time between movement updates (seconds)
 
+# Neutral pulse width range (adjust based on your joystick and capacitors)
+NEUTRAL_THRESHOLD = 0.002  # Pulse width range for "joystick released" state
+
 # Initialize GPIO
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SERVO_HORIZONTAL_PIN, GPIO.OUT)
@@ -74,7 +77,13 @@ try:
 
         # Map pulse widths to servo angles
         horizontal_angle = map_pulse_to_angle(pulse_x)
-        vertical_angle = map_pulse_to_angle(pulse_y)
+
+        # Update vertical angle only if the joystick is moved
+        if pulse_y > NEUTRAL_THRESHOLD:  # Joystick moved up
+            vertical_angle = map_pulse_to_angle(pulse_y)
+        elif pulse_y < -NEUTRAL_THRESHOLD:  # Joystick moved down (if inverted)
+            vertical_angle = map_pulse_to_angle(pulse_y)
+        # Otherwise, maintain the current vertical angle
 
         # Apply new servo positions
         set_angle(horizontal_pwm, horizontal_angle)
