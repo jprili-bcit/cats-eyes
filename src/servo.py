@@ -82,9 +82,7 @@ def set_servo_angle(pin, angle):
     pulse_width = pulse_width / 1000000.0  # Convert to seconds
 
     GPIO.output(pin, GPIO.HIGH)
-    time.sleep(pulse_width)
     GPIO.output(pin, GPIO.LOW)
-    time.sleep((1.0/SERVO_REFRESH_RATE) - pulse_width)
 
 def smooth_servo_movement(current, target, factor):
     """Gradually move current angle toward target angle"""
