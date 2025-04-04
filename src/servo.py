@@ -90,20 +90,6 @@ def smooth_servo_movement(current, target, factor):
     """Gradually move current angle toward target angle"""
     return current + (target - current) * factor
 
-try:
-    print("Analog Joystick Camera Control System")
-    print("Calibrating - Please center the joystick...")
-
-    # Robust calibration with multiple samples
-    x_center = calibrate_joystick(VRX_PIN, CALIBRATION_SAMPLES)
-    y_center = calibrate_joystick(VRY_PIN, CALIBRATION_SAMPLES)
-
-    # Validate calibration
-    if x_center <= MIN_READING or y_center <= MIN_READING:
-        raise ValueError("Calibration failed - check joystick connections")
-
-    print(f"Calibration complete - Center X: {x_center:.1f}, Y: {y_center:.1f}")
-
     # Initial position
     set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
     set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
