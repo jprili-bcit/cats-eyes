@@ -94,8 +94,8 @@ try:
         pulse_y = measure_pulse(VRY_PIN)
         print(f"{pulse_x}, {pulse_y}")
 
-        horizontal_angle = map_pulse_to_angle(horizontal_angle)
-        vertical_angle = map_pulse_to_angle(vertical_angle)
+        horizontal_angle = map_pulse_to_angle(horizontal_angle, pulse_x)
+        vertical_angle = map_pulse_to_angle(vertical_angle, pulse_y)
 
         # Apply new servo positions
         set_angle(horizontal_pwm, horizontal_angle)
