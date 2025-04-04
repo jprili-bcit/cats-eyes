@@ -21,7 +21,7 @@ STEP_SIZE = 2              # Degrees per movement step
 MOVE_DELAY = 0.1           # Time between movement updates (seconds)
 
 # Neutral pulse width range (adjust based on your joystick and capacitors)
-NEUTRAL_THRESHOLD = 0.002  # Pulse width range for "joystick released" state
+NEUTRAL_THRESHOLD = 1e-6  # Pulse width range for "joystick released" state
 
 # Add smoothing configuration at the top
 SMOOTHING_SAMPLES = 10  # Number of samples for moving average
@@ -111,14 +111,6 @@ try:
         # Apply new servo positions
         set_angle(horizontal_pwm, horizontal_angle)
         set_angle(vertical_pwm, vertical_angle)
-
-        # Center button handling
-        if not GPIO.input(BUTTON_PIN):  # Active LOW
-            horizontal_angle = vertical_angle = SERVO_CENTER
-            set_angle(horizontal_pwm, SERVO_CENTER)
-            set_angle(vertical_pwm, SERVO_CENTER)
-            print("\nCentered servos!")
-            time.sleep(0.5)
 
         # Debug output
         print(f"H: {horizontal_angle:03}° V: {vertical_angle:03}°")
