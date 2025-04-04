@@ -22,6 +22,10 @@ MOVE_DELAY = 0.1           # Time between movement updates (seconds)
 # Neutral pulse width range (adjust based on your joystick and capacitors)
 NEUTRAL_THRESHOLD = 0.002  # Pulse width range for "joystick released" state
 
+# Add smoothing configuration at the top
+SMOOTHING_SAMPLES = 10  # Number of samples for moving average
+NEUTRAL_DEADZONE = 0.15  # 15% deadzone around center position
+
 # Initialize GPIO
 GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(SERVO_HORIZONTAL_PIN, GPIO.OUT)
@@ -32,6 +36,9 @@ horizontal_pwm = GPIO.PWM(SERVO_HORIZONTAL_PIN, 50)
 vertical_pwm = GPIO.PWM(SERVO_VERTICAL_PIN, 50)
 horizontal_pwm.start(0)
 vertical_pwm.start(0)
+
+x_buffer = deque(maxlen=SMOOTHING_SAMPLES)
+y_buffer = deque(maxlen=SMOOTHING_SAMPLES)
 
 # Current servo positions
 horizontal_angle = SERVO_CENTER
@@ -64,6 +71,16 @@ def set_angle(pwm, angle):
     time.sleep(0.1)  # Allow servo to move
     pwm.ChangeDutyCycle(0)  # Stop sending signal
 
+def map_pulse_to_angle(pulse_width, max_width=0.01):
+    # Normalize to -1 to 1 range with deadzone
+    normalized = (pulse_width / max_width) * 2 - 1
+    if abs(normalized) < NEUTRAL_DEADZONE:
+        return SERVO_CENTER
+
+    # Map to servo range
+    angle = SERVO_CENTER + normalized * (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)/2
+    return max(SERVO_MIN_ANGLE, min(SERVO_MAX_ANGLE, angle))
+
 try:
     # Set initial servo positions
     set_angle(horizontal_pwm, SERVO_CENTER)
@@ -72,11 +89,16 @@ try:
 
     while True:
         # Measure pulse width for X and Y axes
-        pulse_x = measure_pulse(VRX_PIN)  # X-axis pulse width
-        pulse_y = measure_pulse(VRY_PIN)  # Y-axis pulse width
+        pulse_x = measure_pulse(VRX_PIN)
+        x_buffer.append(pulse_x)
+        smoothed_x = sum(x_buffer) / len(x_buffer)
+        horizontal_angle = map_pulse_to_angle(smoothed_x)
 
-        # Map pulse widths to servo angles
-        horizontal_angle = map_pulse_to_angle(pulse_x)
+        # Measure and smooth Y-axis
+        pulse_y = measure_pulse(VRY_PIN)
+        y_buffer.append(pulse_y)
+        smoothed_y = sum(y_buffer) / len(y_buffer)
+        vertical_angle = map_pulse_to_angle(smoothed_y)
 
         # Update vertical angle only if the joystick is moved
         if pulse_y > NEUTRAL_THRESHOLD:  # Joystick moved up
@@ -98,7 +120,7 @@ try:
             time.sleep(0.5)
 
         # Debug output
-        print(f"H: {horizontal_angle:03}° V: {vertical_angle:03}°", end='\r')
+        print(f"H: {horizontal_angle:03}° V: {vertical_angle:03}°")
         time.sleep(MOVE_DELAY)
 
 except KeyboardInterrupt:
