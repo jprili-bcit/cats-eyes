@@ -69,7 +69,6 @@ def map_pulse_to_angle(pulse_width, max_width=0.01):
 def set_angle(pwm, angle):
     duty = angle / 18 + 2
     pwm.ChangeDutyCycle(duty)
-    time.sleep(0.1)  # Allow servo to move
     pwm.ChangeDutyCycle(0)  # Stop sending signal
 
 def map_pulse_to_angle(current_angle, pulse_width, max_width=0.01):
