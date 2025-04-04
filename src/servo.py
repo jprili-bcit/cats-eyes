@@ -105,13 +105,6 @@ try:
         horizontal_angle = map_pulse_to_angle(horizontal_angle, smoothed_x)
         vertical_angle = map_pulse_to_angle(vertical_angle, smoothed_y)
 
-        # Update vertical angle only if the joystick is moved
-        if pulse_y > NEUTRAL_THRESHOLD:  # Joystick moved up
-            vertical_angle = map_pulse_to_angle(pulse_y)
-        elif pulse_y < -NEUTRAL_THRESHOLD:  # Joystick moved down (if inverted)
-            vertical_angle = map_pulse_to_angle(pulse_y)
-        # Otherwise, maintain the current vertical angle
-
         # Apply new servo positions
         set_angle(horizontal_pwm, horizontal_angle)
         set_angle(vertical_pwm, vertical_angle)
