@@ -19,7 +19,7 @@ SERVO_MAX_PULSE = 2500     # μs
 SERVO_MIN_ANGLE = 0        # degrees
 SERVO_MAX_ANGLE = 180      # degrees
 SERVO_REFRESH_RATE = 120   # Hz
-SERVO_SENSITIVITY = 0.5    # Movement speed multiplier (0.1-1.0)
+SERVO_SENSITIVITY = 0.8    # Movement speed multiplier (0.1-2.0)
 DEADZONE = 0.15            # Joystick deadzone (15% of total range)
 
 # Joystick configuration
@@ -67,11 +67,11 @@ def set_servo_angle(pin, angle):
     time.sleep((1/SERVO_REFRESH_RATE) - pulse_us)
 
 try:
-    # Automatic center detection (no user calibration needed)
+    # Automatic center reference
     print("Initializing...")
     x_center = sum(read_rc_time(VRX_PIN) for _ in range(5)) / 5
     y_center = sum(read_rc_time(VRY_PIN) for _ in range(5)) / 5
-    print(f"Auto-detected center - X: {x_center:.1f}, Y: {y_center:.1f}")
+    print(f"Reference center - X: {x_center:.1f}, Y: {y_center:.1f}")
 
     # Initial servo position
     set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
@@ -85,10 +85,12 @@ try:
         y_buffer.append(y_val)
 
         # Calculate relative offsets
-        x_offset = (x_center - sum(x_buffer)/len(x_buffer)) / x_center
-        y_offset = (y_center - sum(y_buffer)/len(y_buffer)) / y_center
+        smooth_x = sum(x_buffer)/len(x_buffer)
+        smooth_y = sum(y_buffer)/len(y_buffer)
+        x_offset = (x_center - smooth_x) / x_center
+        y_offset = (y_center - smooth_y) / y_center
 
-        # Apply deadzone and sensitivity
+        # Apply deadzone
         if abs(x_offset) < DEADZONE: x_offset = 0
         if abs(y_offset) < DEADZONE: y_offset = 0
 
@@ -109,6 +111,8 @@ try:
             horizontal_angle = vertical_angle = 90
             print("\nCentered servos!")
             time.sleep(0.5)  # Debounce delay
+            x_buffer.clear()
+            y_buffer.clear()
 
         # Display status
         print(f"H: {horizontal_angle:05.1f}° | V: {vertical_angle:05.1f}° | X: {x_offset:+.2f} | Y: {y_offset:+.2f}", end='\r')
