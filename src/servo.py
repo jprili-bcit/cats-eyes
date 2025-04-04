@@ -72,11 +72,13 @@ def set_angle(pwm, angle):
     time.sleep(0.1)  # Allow servo to move
     pwm.ChangeDutyCycle(0)  # Stop sending signal
 
-def map_pulse_to_angle(pulse_width, max_width=0.01):
+def map_pulse_to_angle(current_angle, pulse_width, max_width=0.01):
     # Normalize to -1 to 1 range with deadzone
     normalized = (pulse_width / max_width) * 2 - 1
     if abs(normalized) < NEUTRAL_DEADZONE:
         return SERVO_CENTER
+    else:
+        return current_angle + normalized
 
     # Map to servo range
     angle = SERVO_CENTER + normalized * (SERVO_MAX_ANGLE - SERVO_MIN_ANGLE)/2
@@ -90,8 +92,8 @@ try:
 
     while True:
         # Measure pulse width for X and Y axes
-        pulse_x = measure_pulse(VRX_PIN)
-        pulse_y = measure_pulse(VRY_PIN)
+        pulse_x = measure_pulse(VRX_PIN) * 1000
+        pulse_y = measure_pulse(VRY_PIN) * 1000
         print(f"{pulse_x}, {pulse_y}")
 
         x_buffer.append(pulse_x)
