@@ -95,15 +95,11 @@ try:
     # Initial position
     # set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
     # set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
+    set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
+    set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
 
     while True:
         # Read button
-        target_h_angle = target_v_angle = 90
-        horizontal_angle = vertical_angle = 90
-        set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
-        set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
-        print("\nCentered servos!")
-        time.sleep(0.5)
         x_buffer.clear()
         y_buffer.clear()
 
@@ -142,7 +138,6 @@ try:
 
         # Display status
         print(f"X: {x_val:4d} ({x_rel:+.2f}) | Y: {y_val:4d} ({y_rel:+.2f}) | Servos: H{horizontal_angle:3.0f}° V{vertical_angle:3.0f}°", end='\r')
-        time.sleep(SAMPLE_INTERVAL)
 
 except Exception as e:
     print(f"\nError: {str(e)}")
