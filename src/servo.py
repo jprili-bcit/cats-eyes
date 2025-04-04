@@ -92,6 +92,7 @@ try:
         # Measure pulse width for X and Y axes
         pulse_x = measure_pulse(VRX_PIN)
         pulse_y = measure_pulse(VRY_PIN)
+        print(f"{pulse_x}, {pulse_y}")
 
         x_buffer.append(pulse_x)
         y_buffer.append(pulse_y)
