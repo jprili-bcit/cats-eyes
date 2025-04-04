@@ -19,10 +19,10 @@ SERVO_MAX_PULSE = 2500     # μs
 SERVO_MIN_ANGLE = 0        # degrees
 SERVO_MAX_ANGLE = 180      # degrees
 SERVO_REFRESH_RATE = 120   # Hz
-SERVO_SMOOTHING_FACTOR = 0.2  # Lower = smoother (0.1-0.5 recommended)
+SERVO_SMOOTHING_FACTOR = 0.1  # Lower = smoother (0.1-0.5 recommended)
 
 # Joystick configuration
-SAMPLE_INTERVAL = 0.02     # Reduced from 0.1s for more frequent updates
+SAMPLE_INTERVAL = 0.001     # Reduced from 0.1s for more frequent updates
 MOVE_THRESHOLD = 0.15      # Slightly reduced threshold
 CALIBRATION_SAMPLES = 10    # Number of samples for calibration
 MIN_READING = 1            # Minimum allowed reading
