@@ -1,5 +1,6 @@
 import time
 import RPi.GPIO as GPIO
+from collections import deque
 
 # Set up GPIO
 GPIO.setmode(GPIO.BCM)
