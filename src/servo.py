@@ -91,14 +91,18 @@ try:
     while True:
         # Measure pulse width for X and Y axes
         pulse_x = measure_pulse(VRX_PIN)
-        x_buffer.append(pulse_x)
-        smoothed_x = sum(x_buffer) / len(x_buffer)
-        horizontal_angle = map_pulse_to_angle(smoothed_x)
-
-        # Measure and smooth Y-axis
         pulse_y = measure_pulse(VRY_PIN)
+
+        x_buffer.append(pulse_x)
         y_buffer.append(pulse_y)
+
+        smoothed_x = sum(x_buffer) / len(x_buffer)
         smoothed_y = sum(y_buffer) / len(y_buffer)
+
+        if (abs(smoothed_x) < NEUTRAL_DEADZONE and abs(smoothed_y) < NEUTRAL_DEADZONE):
+            continue
+
+        horizontal_angle = map_pulse_to_angle(smoothed_x)
         vertical_angle = map_pulse_to_angle(smoothed_y)
 
         # Update vertical angle only if the joystick is moved
