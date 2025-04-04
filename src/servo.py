@@ -86,14 +86,14 @@ def map_pulse_to_angle(current_angle, pulse_width, max_width=0.01):
 
 try:
     # Set initial servo positions
-    set_angle(horizontal_pwm, SERVO_CENTER)
-    set_angle(vertical_pwm, SERVO_CENTER)
+    set_angle(horizontal_pwm, horizontal_angle)
+    set_angle(vertical_pwm, vertical_angle)
     print("Joystick control started. Press CTRL+C to exit.")
 
     while True:
         # Measure pulse width for X and Y axes
-        pulse_x = measure_pulse(VRX_PIN) * 1000
-        pulse_y = measure_pulse(VRY_PIN) * 1000
+        pulse_x = measure_pulse(VRX_PIN)
+        pulse_y = measure_pulse(VRY_PIN)
         print(f"{pulse_x}, {pulse_y}")
 
         x_buffer.append(pulse_x)
@@ -102,11 +102,8 @@ try:
         smoothed_x = sum(x_buffer) / len(x_buffer)
         smoothed_y = sum(y_buffer) / len(y_buffer)
 
-        if (abs(smoothed_x) < NEUTRAL_DEADZONE and abs(smoothed_y) < NEUTRAL_DEADZONE):
-            continue
-
-        horizontal_angle = map_pulse_to_angle(smoothed_x)
-        vertical_angle = map_pulse_to_angle(smoothed_y)
+        horizontal_angle = map_pulse_to_angle(horizontal_angle, smoothed_x)
+        vertical_angle = map_pulse_to_angle(vertical_angle, smoothed_y)
 
         # Update vertical angle only if the joystick is moved
         if pulse_y > NEUTRAL_THRESHOLD:  # Joystick moved up
