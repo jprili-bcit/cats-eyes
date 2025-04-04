@@ -90,6 +90,7 @@ def smooth_servo_movement(current, target, factor):
     """Gradually move current angle toward target angle"""
     return current + (target - current) * factor
 
+try:
     # Initial position
     set_servo_angle(SERVO_HORIZONTAL_PIN, horizontal_angle)
     set_servo_angle(SERVO_VERTICAL_PIN, vertical_angle)
